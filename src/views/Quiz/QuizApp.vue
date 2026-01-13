@@ -4,7 +4,7 @@
   box-sizing: border-box;
 }
 
-html {
+main {
   font-size: calc(12px + 0.95vw);
   font-family: 'Open Sans', sans-serif;
   color: #333;
