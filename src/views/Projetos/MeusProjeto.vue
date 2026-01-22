@@ -51,7 +51,7 @@
         </a>
       </li>
       <li>
-        <a href="https://github.com/Davi-Prussek/PI_CuidadosDeUmProgramador" target="_blank">
+        <a href="https://davi-prussek.github.io/PI_CuidadosDeUmProgramador/" target="_blank">
           PI – Cuidados de um Programador
         </a>
       </li>

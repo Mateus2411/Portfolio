@@ -1,4 +1,4 @@
-<style>
+<style scoped>
 /* ================= ESTILOS (Mantidos e Adaptados) ================= */
 * {
   box-sizing: border-box;
@@ -10,6 +10,9 @@ main {
   color: #333;
   line-height: 1.6;
   background-color: #f9fbff;
+  padding-top: 2rem;
+  display: flex;
+  justify-content: center;
 }
 
 body {
@@ -19,8 +22,8 @@ body {
 }
 
 .quiz-container {
-  max-width: 620px;
-  margin: 5vh auto;
+  width: calc(600px + 15rem);
+  /* margin: 5vh auto; */
   background: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
   padding: 16px;
@@ -492,7 +495,7 @@ body {
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 
-// --- Dados ---
+// --- Perguntas ---
 const questionsData = [
   {
     question: "Em programação, o que seria mais parecido com uma 'alimentação saudável'?",
@@ -638,7 +641,7 @@ const progressPercentage = computed(() => {
 const feedbackClass = computed(() => {
   return isCorrect.value ? 'feedback-correct' : 'feedback-incorrect'
 })
-
+// Resultados
 const resultMessage = computed(() => {
   const percentage = Math.round((correctAnswers.value / questions.value.length) * 100)
   if (percentage >= 90)
@@ -654,6 +657,7 @@ const resultMessage = computed(() => {
 
 function init() {
   // Embaralha os índices das perguntas
+  // Usei muito chat aq kkkk
   order.value = [...Array(questions.value.length).keys()].sort(() => Math.random() - 0.5)
 
   currentIndex.value = 0
@@ -667,7 +671,7 @@ function init() {
 }
 
 function playSound(type) {
-  // Implementação simples de áudio via Web Audio API
+  // Implementação simples de áudio via Webkit Audio API
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext
     if (!AudioContext) return
