@@ -1,132 +1,318 @@
-
 <template>
   <main class="home">
-    <section class="intro">
-      <h1>Este é o meu portfólio</h1>
-      <p>
-        Aqui você encontra meus projetos, uma breve descrição sobre mim e um quiz do qual me orgulho
-        bastante.
-      </p>
-
-      <p>
-        Atualmente sou estudante do Instituto Federal (IF) e estou explorando o mundo da programação
-        por meio de projetos cada vez mais desafiadores e interessantes. Meu objetivo é aprender de
-        forma prática, desenvolver habilidades em diferentes linguagens e, futuramente, construir
-        algo que realmente faça a diferença.
-      </p>
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <div class="hero-badge">👋 Bem-vindo ao meu portfólio</div>
+        <h1 class="hero-title">
+          Transformando ideias em
+          <span class="gradient-text">código</span>
+        </h1>
+        <p class="hero-description">
+          Estudante do Instituto Federal explorando o mundo da programação através de projetos
+          desafiadores. Focado em backend, dados e construindo soluções que fazem a diferença.
+        </p>
+        <div class="hero-cta">
+          <router-link to="/projetos" class="btn-primary">Ver Projetos</router-link>
+          <router-link to="/sobre" class="btn-secondary">Sobre Mim</router-link>
+        </div>
+      </div>
     </section>
 
-    <section id="focos-programacao">
-      <h2>Meus focos na programação</h2>
+    <!-- Focus Cards -->
+    <section class="focus-section">
+      <h2 class="section-title">Áreas de Interesse</h2>
+      <div class="focus-grid">
+        <div class="focus-card">
+          <div class="card-icon">🎯</div>
+          <h3>Backend Development</h3>
+          <p>
+            Foco principal em desenvolvimento backend, com atenção especial à estruturação de dados,
+            APIs e regras de negócio que sustentam aplicações robustas.
+          </p>
+        </div>
 
-      <p>
-        Atualmente, meu principal interesse dentro da programação está no
-        <strong>backend</strong>, com uma atenção especial à área de <strong>dados</strong>, como
-        estruturação, manipulação e a lógica que sustenta as aplicações. Tenho um interesse mais
-        aprofundado em entender como os dados são organizados, processados e utilizados para gerar
-        valor, mas continuo apreciando e estudando o backend como um todo, incluindo regras de
-        negócio, APIs e a integração entre sistemas.
-      </p>
+        <div class="focus-card">
+          <div class="card-icon">📊</div>
+          <h3>Engenharia de Dados</h3>
+          <p>
+            Interesse profundo em como os dados são organizados, processados e utilizados para gerar
+            valor, explorando manipulação e lógica de dados.
+          </p>
+        </div>
 
-      <p>
-        No momento, estou em uma fase de aprendizado mais ampla, buscando compreender o ecossistema
-        completo do desenvolvimento de software. Isso envolve estudar frontend, backend, lógica,
-        arquitetura e boas práticas, com o objetivo de construir uma base sólida antes de direcionar
-        minha especialização de forma definitiva.
-      </p>
+        <div class="focus-card">
+          <div class="card-icon">🚀</div>
+          <h3>Aprendizado Contínuo</h3>
+          <p>
+            Estudando o ecossistema completo do desenvolvimento: frontend, backend, arquitetura e
+            boas práticas para construir uma base sólida.
+          </p>
+        </div>
+      </div>
+    </section>
 
-      <p>
-        Acredito que essa abordagem me permite desenvolver uma visão mais estratégica e consciente,
-        entendendo como cada parte de um sistema se conecta. Com o tempo, meu foco tende a se
-        consolidar cada vez mais no backend, especialmente no trabalho com dados, sem perder a visão
-        geral das aplicações.
-      </p>
+    <!-- Philosophy Section -->
+    <section class="philosophy">
+      <div class="philosophy-content">
+        <h2>Minha Abordagem</h2>
+        <p>
+          Acredito que uma visão estratégica e consciente do desenvolvimento vem de entender como
+          cada parte de um sistema se conecta. Por isso, busco compreender o ecossistema completo
+          antes de especializar definitivamente.
+        </p>
+        <p>
+          Com o tempo, meu foco tende a se consolidar cada vez mais no backend e trabalho com dados,
+          sem perder a visão geral das aplicações e mantendo a curiosidade que me move.
+        </p>
+      </div>
     </section>
   </main>
 </template>
 
 <style scoped>
 .home {
-  max-width: 900px;
-  margin: 60px auto;
-  padding: 0 24px;
-  font-family: Arial, sans-serif;
-  color: #1f2933;
-
-  /* Intro */
-  .intro {
-    h1 {
-      font-size: 2.2rem;
-      margin-bottom: 16px;
-      color: #2563eb;
-    }
-
-    p {
-      font-size: 1.05rem;
-      line-height: 1.6;
-      margin-bottom: 10px;
-    }
-  }
-
-  /* Focos na programação */
-  #focos-programacao {
-    margin-top: 48px;
-
-    h2 {
-      font-size: 1.6rem;
-      margin-bottom: 20px;
-      font-weight: 600;
-      color: #2563eb;
-    }
-
-    p {
-      font-size: 1rem;
-      line-height: 1.7;
-      margin-bottom: 16px;
-    }
-
-    strong {
-      font-weight: 600;
-    }
-  }
+  width: 100%;
+  min-height: calc(100vh - 64px);
 }
 
-/* 🔹 Tablets */
+/* Hero Section */
+.hero {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 120px 24px 80px;
+  text-align: center;
+}
+
+.hero-content {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.hero-badge {
+  display: inline-block;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 24px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.hero-title {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 24px;
+  color: #1a202c;
+  letter-spacing: -0.02em;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-description {
+  font-size: clamp(1.1rem, 2vw, 1.3rem);
+  line-height: 1.7;
+  color: #4a5568;
+  max-width: 700px;
+  margin: 0 auto 40px;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 14px 32px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.btn-secondary {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.btn-secondary:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* Focus Section */
+.focus-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 24px;
+}
+
+.section-title {
+  font-size: clamp(2rem, 4vw, 2.5rem);
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 60px;
+  color: #1a202c;
+}
+
+.focus-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 32px;
+}
+
+.focus-card:last-child:nth-child(3n - 1) {
+  grid-column: span 2;
+}
+
 @media (max-width: 768px) {
-  .home {
-    margin: 40px auto;
-    padding: 0 20px;
-
-    .intro {
-      h1 {
-        font-size: 1.9rem;
-      }
-
-      p {
-        font-size: 0.98rem;
-      }
-    }
+  .focus-card:last-child:nth-child(3n - 1) {
+    grid-column: span 1;
   }
 }
 
-/* 🔹 Celulares */
+.focus-card {
+  background: white;
+  padding: 40px 32px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid #e2e8f0;
+}
+
+.focus-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
+  border-color: #667eea;
+}
+
+.card-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+.focus-card h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #1a202c;
+}
+
+.focus-card p {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #4a5568;
+}
+
+/* Philosophy Section */
+.philosophy {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 80px 24px;
+  margin-top: 40px;
+}
+
+.philosophy-content {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+  color: white;
+}
+
+.philosophy-content h2 {
+  font-size: clamp(2rem, 4vw, 2.5rem);
+  font-weight: 700;
+  margin-bottom: 32px;
+}
+
+.philosophy-content p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin-bottom: 20px;
+  opacity: 0.95;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero {
+    padding: 80px 20px 60px;
+  }
+
+  .hero-cta {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .focus-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .focus-section,
+  .philosophy {
+    padding: 60px 20px;
+  }
+}
+
 @media (max-width: 480px) {
-  .home {
-    margin: 28px auto;
-    padding: 0 18px;
+  .hero {
+    padding: 60px 18px 40px;
+  }
 
-    .intro {
-      h1 {
-        font-size: 1.9rem;
-        line-height: 1.35;
-      }
-
-      p {
-        font-size: 1.1rem;
-        margin-bottom: 28px;
-        line-height: 1.65;
-      }
-    }
+  .focus-card {
+    padding: 32px 24px;
   }
 }
 </style>

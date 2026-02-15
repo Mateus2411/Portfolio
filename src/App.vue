@@ -26,57 +26,62 @@ import HeaderApp from './components/HeaderApp.vue'
   overflow-x: hidden;
 }
 
-/* Bola animada RGB */
+/* Animated gradient background */
 .bg-animation {
   position: fixed;
-  top: 25%;
-  left: -250px;
-
-  width: 320px;
-  height: 320px;
-  border-radius: 50%;
-
-  background: radial-gradient(
-    circle at 30% 30%,
-    rgb(255, 0, 150),
-    rgb(0, 200, 255),
-    rgb(0, 255, 150)
-  );
-
-  filter: blur(90px);
-  opacity: 100;
-
-  animation:
-    moveBall 24s linear infinite alternate,
-    colorShift 9s linear infinite;
-
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   z-index: -1;
   pointer-events: none;
+  overflow: hidden;
 }
 
-/* Movimento horizontal */
-@keyframes moveBall {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(calc(100vw + 500px));
-  }
+.bg-animation::before,
+.bg-animation::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.3;
 }
 
-/* Troca de cores */
-@keyframes colorShift {
-  0% {
-    background: radial-gradient(circle, rgba(255, 0, 149, 0.2), rgba(0, 200, 255, 0.2));
-  }
-  33% {
-    background: radial-gradient(circle, rgba(0, 255, 150, 0.2), rgba(255, 80, 0, 0.2));
-  }
-  66% {
-    background: radial-gradient(circle, rgba(0, 150, 255, 0.2), rgba(180, 0, 255, 0.2));
-  }
+.bg-animation::before {
+  width: 500px;
+  height: 500px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  top: -200px;
+  right: -200px;
+  animation: float1 20s ease-in-out infinite;
+}
+
+.bg-animation::after {
+  width: 400px;
+  height: 400px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  bottom: -150px;
+  left: -150px;
+  animation: float2 25s ease-in-out infinite;
+}
+
+@keyframes float1 {
+  0%,
   100% {
-    background: radial-gradient(circle, rgba(255, 0, 150, 0.2), rgba(0, 200, 255, 0.2));
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-100px, 100px) scale(1.1);
+  }
+}
+
+@keyframes float2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(100px, -100px) scale(1.2);
   }
 }
 </style>
