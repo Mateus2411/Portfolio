@@ -1,318 +1,621 @@
+<script setup>
+import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import { motion } from 'motion-v'
+import { World } from '@/three/World'
+import { gsap, ScrollTrigger, SplitText, cursor, scrollTo, lenis } from '@/lib/motion'
+import { langs, projects, GITHUB_USER } from '@/data'
+import PreLoader from '@/components/PreLoader.vue'
+import NavBar from '@/components/NavBar.vue'
+import LangTerminal from '@/components/LangTerminal.vue'
+
+const canvas = ref(null)
+const root = ref(null)
+const track = ref(null)
+const world = shallowRef(null)
+const progress = ref(0)
+const loaded = ref(false)
+const current = ref(0)
+const repoCount = ref(26)
+let ctx,
+  cycle,
+  pausedUntil = 0,
+  cursorFromWorld = false
+
+// posição do cristal/câmera/cubos em cada seção [desktop, celular]
+const T = {
+  hero: [
+    {
+      camX: 0,
+      camY: 0,
+      camZ: 10,
+      crX: 2.6,
+      crY: 0.1,
+      crZ: 0,
+      crS: 1,
+      w0: 1,
+      w1: 0,
+      w2: 0,
+      w3: 0,
+      w4: 0,
+      tint: 0,
+    },
+    {
+      camX: 0,
+      camY: 0,
+      camZ: 11,
+      crX: 0,
+      crY: 2.1,
+      crZ: -1,
+      crS: 0.7,
+      w0: 1,
+      w1: 0,
+      w2: 0,
+      w3: 0,
+      w4: 0,
+      tint: 0,
+    },
+  ],
+  sobre: [
+    {
+      camX: 0,
+      camY: 0,
+      camZ: 11,
+      crX: -4,
+      crY: -0.5,
+      crZ: -3,
+      crS: 0.8,
+      w0: 0,
+      w1: 1,
+      w2: 0,
+      w3: 0,
+      w4: 0,
+      tint: 0.3,
+    },
+    {
+      camX: 0,
+      camY: 0,
+      camZ: 12,
+      crX: 0,
+      crY: -2.5,
+      crZ: -5,
+      crS: 0.7,
+      w0: 0,
+      w1: 1,
+      w2: 0,
+      w3: 0,
+      w4: 0,
+      tint: 0.3,
+    },
+  ],
+  stack: [
+    {
+      camX: 0,
+      camY: 0,
+      camZ: 10,
+      crX: 3.4,
+      crY: 0,
+      crZ: -3,
+      crS: 0.55,
+      w0: 0,
+      w1: 0,
+      w2: 1,
+      w3: 0,
+      w4: 0,
+      tint: 0.55,
+    },
+    {
+      camX: 0,
+      camY: 0,
+      camZ: 12,
+      crX: 0,
+      crY: 2.2,
+      crZ: -3,
+      crS: 0.5,
+      w0: 0,
+      w1: 0,
+      w2: 1,
+      w3: 0,
+      w4: 0,
+      tint: 0.55,
+    },
+  ],
+  projetos: [
+    {
+      camX: 0,
+      camY: 0,
+      camZ: 12,
+      crX: 0,
+      crY: 0,
+      crZ: -9,
+      crS: 1.6,
+      w0: 0,
+      w1: 0,
+      w2: 0,
+      w3: 1,
+      w4: 0,
+      tint: 0.8,
+    },
+    {
+      camX: 0,
+      camY: 0,
+      camZ: 13,
+      crX: 0,
+      crY: 0,
+      crZ: -9,
+      crS: 1.4,
+      w0: 0,
+      w1: 0,
+      w2: 0,
+      w3: 1,
+      w4: 0,
+      tint: 0.8,
+    },
+  ],
+  contato: [
+    {
+      camX: 0,
+      camY: 0,
+      camZ: 10,
+      crX: 0,
+      crY: 0,
+      crZ: -1,
+      crS: 0.8,
+      w0: 0,
+      w1: 0,
+      w2: 0,
+      w3: 0,
+      w4: 1,
+      tint: 1,
+    },
+    {
+      camX: 0,
+      camY: 0,
+      camZ: 12,
+      crX: 0,
+      crY: 0.6,
+      crZ: -1,
+      crS: 0.7,
+      w0: 0,
+      w1: 0,
+      w2: 0,
+      w3: 0,
+      w4: 1,
+      tint: 1,
+    },
+  ],
+}
+
+function pick(i, manual = false) {
+  current.value = i
+  if (manual) pausedUntil = performance.now() + 15000
+}
+
+onMounted(() => {
+  lenis.stop()
+  world.value = new World(canvas.value, langs, {
+    onProgress: (p) => (progress.value = p),
+    onSelect: (i) => pick(i, true),
+    onHover: (h) => {
+      if (h) {
+        Object.assign(cursor, { label: h === 'crystal' ? 'clique 💥' : 'arraste', big: true })
+        cursorFromWorld = true
+      } else if (cursorFromWorld) {
+        Object.assign(cursor, { label: '', big: false })
+        cursorFromWorld = false
+      }
+    },
+  })
+  // sem textura de rede, nada trava o preloader; ainda assim garante o fim
+  world.value.ready.then(() => (progress.value = 1))
+
+  fetch(`https://api.github.com/users/${GITHUB_USER}`)
+    .then((r) => r.ok && r.json())
+    .then((u) => u?.public_repos && (repoCount.value = u.public_repos))
+    .catch(() => {})
+
+  // as linguagens trocam sozinhas, a não ser que alguém escolha uma
+  cycle = setInterval(() => {
+    if (performance.now() > pausedUntil) world.value?.select((current.value + 1) % langs.length)
+  }, 6000)
+})
+
+// SplitText quebra o background-clip do gradiente: cada pedaço dentro de
+// .text-grad recebe o próprio gradiente (palavras inteiras, não letra a letra)
+function split(target, opts) {
+  const s = SplitText.create(target, opts)
+  s.words.forEach((w) => {
+    if (!w.parentElement.closest('.text-grad')) return
+    w.classList.add('text-grad')
+    w.querySelectorAll('*').forEach((c) => c.classList.add('text-grad'))
+  })
+  return s
+}
+
+async function start() {
+  loaded.value = true
+  await nextTick()
+  lenis.start()
+  ctx = gsap.context(() => {
+    // ---------- entrada do hero ----------
+    const name = split('.hero-name', { type: 'words,chars', mask: 'chars' })
+    gsap
+      .timeline({ defaults: { ease: 'expo.out' } })
+      .from(name.chars, { yPercent: 120, rotate: 8, duration: 1.4, stagger: 0.05 })
+      .from('.hero-in', { y: 30, opacity: 0, duration: 1.2, stagger: 0.1 }, 0.3)
+      .from('.marquee', { opacity: 0, duration: 1.5 }, 0.8)
+
+    // ---------- títulos das seções ----------
+    gsap.utils.toArray('.sec-title').forEach((el) => {
+      const s = split(el, { type: 'words,chars', mask: 'chars' })
+      gsap.from(s.chars, {
+        yPercent: 110,
+        duration: 1.1,
+        ease: 'expo.out',
+        stagger: 0.025,
+        scrollTrigger: { trigger: el, start: 'top 85%' },
+      })
+    })
+
+    // ---------- texto do "sobre" acendendo palavra por palavra ----------
+    const words = SplitText.create('.statement', { type: 'words' }).words
+    gsap.fromTo(
+      words,
+      { opacity: 0.12 },
+      {
+        opacity: 1,
+        stagger: 0.1,
+        ease: 'none',
+        scrollTrigger: { trigger: '.statement', start: 'top 80%', end: 'bottom 50%', scrub: true },
+      },
+    )
+
+    // contadores
+    gsap.utils.toArray('[data-count]').forEach((el) => {
+      const o = { v: 0 }
+      gsap.to(o, {
+        v: () => +el.dataset.count,
+        duration: 2,
+        ease: 'power3.out',
+        onUpdate: () => (el.textContent = Math.round(o.v)),
+        scrollTrigger: { trigger: el, start: 'top 90%' },
+      })
+    })
+
+    // ---------- cena 3D guiada pelo scroll ----------
+    const mm = gsap.matchMedia()
+    mm.add({ desk: '(min-width: 768px)', mob: '(max-width: 767px)' }, (c) => {
+      const k = c.conditions.desk ? 0 : 1
+      const s = world.value.state
+      Object.assign(s, T.hero[k])
+      const move = (from, to, trigger, extra = {}) =>
+        gsap.fromTo(
+          s,
+          { ...T[from][k] },
+          {
+            ...T[to][k],
+            ease: 'none',
+            immediateRender: false,
+            scrollTrigger: { trigger, start: 'top bottom', end: 'top 25%', scrub: 1.2, ...extra },
+          },
+        )
+
+      move('hero', 'sobre', '#sobre')
+      move('sobre', 'stack', '#stack')
+      move('stack', 'projetos', '#projetos', { end: 'top top' })
+
+      // galeria horizontal dos projetos (só no desktop)
+      if (c.conditions.desk) {
+        const dist = () => track.value.scrollWidth - innerWidth + 64
+        gsap.to(track.value, {
+          x: () => -dist(),
+          ease: 'none',
+          scrollTrigger: {
+            trigger: '#projetos',
+            start: 'top top',
+            end: () => '+=' + dist(),
+            pin: true,
+            scrub: 1,
+            invalidateOnRefresh: true,
+          },
+        })
+      }
+      move('projetos', 'contato', '#contato')
+    })
+
+    // ---------- contato ----------
+    const big = split('.contact-big', { type: 'words', mask: 'words' })
+    gsap.from(big.words, {
+      yPercent: 120,
+      rotate: 6,
+      duration: 1.2,
+      ease: 'expo.out',
+      stagger: 0.08,
+      scrollTrigger: { trigger: '.contact-big', start: 'top 80%' },
+    })
+
+    ScrollTrigger.refresh()
+  }, root.value)
+}
+
+onBeforeUnmount(() => {
+  clearInterval(cycle)
+  ctx?.revert()
+  world.value?.dispose()
+  Object.assign(cursor, { label: '', big: false })
+})
+
+const marquee = [...langs, ...langs]
+</script>
+
 <template>
-  <main class="home">
-    <!-- Hero Section -->
-    <section class="hero">
-      <div class="hero-content">
-        <div class="hero-badge">👋 Bem-vindo ao meu portfólio</div>
-        <h1 class="hero-title">
-          Transformando ideias em
-          <span class="gradient-text">código</span>
+  <canvas ref="canvas" class="fixed inset-0 z-0 h-svh w-full touch-pan-y" aria-hidden="true" />
+  <PreLoader v-if="!loaded" :progress="progress" @done="start" />
+  <NavBar />
+
+  <main ref="root" class="pointer-events-none relative z-10 select-none">
+    <!-- ================= HERO ================= -->
+    <section
+      id="hero"
+      class="relative flex min-h-svh flex-col justify-end px-5 pb-28 md:justify-center md:px-12 md:pb-0"
+    >
+      <div class="mx-auto w-full max-w-6xl">
+        <p
+          class="hero-in mb-6 inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 font-mono text-xs text-mute"
+        >
+          <span class="size-2 animate-pulse rounded-full bg-aqua shadow-[0_0_12px] shadow-aqua" />
+          Araquari, SC · estudante de T.I. no IFC
+        </p>
+        <h1 class="text-[17vw] leading-[0.85] font-bold tracking-[-0.06em] md:text-[11vw]">
+          <span class="hero-name block">Mateus</span>
+          <span class="hero-name block pb-[0.08em]"><span class="text-grad">Henrique</span></span>
         </h1>
-        <p class="hero-description">
-          Estudante do Instituto Federal explorando o mundo da programação através de projetos
-          desafiadores. Focado em backend, dados e construindo soluções que fazem a diferença.
+        <p class="hero-in mt-6 max-w-md text-lg text-white/70 md:text-xl">
+          Dev em formação que transforma café em <b class="text-white">Vue, Node, Python e Java</b>.
+          Construindo coisas todo dia.
         </p>
-        <div class="hero-cta">
-          <router-link to="/projetos" class="btn-primary">Ver Projetos</router-link>
-          <router-link to="/sobre" class="btn-secondary">Sobre Mim</router-link>
+        <div class="hero-in pointer-events-auto mt-8 flex flex-wrap gap-3">
+          <button
+            v-magnetic
+            v-cursor="'bora'"
+            class="rounded-full bg-white px-6 py-3 font-medium text-ink transition-colors hover:bg-aqua"
+            @click="scrollTo('#projetos')"
+          >
+            Ver projetos ↓
+          </button>
+          <button
+            v-magnetic
+            class="glass rounded-full px-6 py-3 font-medium transition-colors hover:border-aqua"
+            @click="scrollTo('#contato')"
+          >
+            Falar comigo
+          </button>
+        </div>
+        <p class="hero-in mt-8 hidden font-mono text-xs text-mute md:block">
+          🧊 arraste e arremesse os cubos · 💎 clique no cristal
+        </p>
+      </div>
+
+      <div
+        class="marquee absolute inset-x-0 bottom-6 overflow-hidden border-y border-white/5 py-3 opacity-70"
+      >
+        <div
+          class="flex w-max animate-marquee gap-10 font-mono text-sm whitespace-nowrap text-mute"
+        >
+          <span v-for="(l, i) in marquee" :key="i" class="flex items-center gap-3">
+            <span class="size-1.5 rounded-full" :style="{ background: l.color }" />{{ l.name }}
+          </span>
         </div>
       </div>
     </section>
 
-    <!-- Focus Cards -->
-    <section class="focus-section">
-      <h2 class="section-title">Áreas de Interesse</h2>
-      <div class="focus-grid">
-        <div class="focus-card">
-          <div class="card-icon">🎯</div>
-          <h3>Backend Development</h3>
-          <p>
-            Foco principal em desenvolvimento backend, com atenção especial à estruturação de dados,
-            APIs e regras de negócio que sustentam aplicações robustas.
-          </p>
-        </div>
-
-        <div class="focus-card">
-          <div class="card-icon">📊</div>
-          <h3>Engenharia de Dados</h3>
-          <p>
-            Interesse profundo em como os dados são organizados, processados e utilizados para gerar
-            valor, explorando manipulação e lógica de dados.
-          </p>
-        </div>
-
-        <div class="focus-card">
-          <div class="card-icon">🚀</div>
-          <h3>Aprendizado Contínuo</h3>
-          <p>
-            Estudando o ecossistema completo do desenvolvimento: frontend, backend, arquitetura e
-            boas práticas para construir uma base sólida.
-          </p>
+    <!-- ================= SOBRE ================= -->
+    <section id="sobre" class="px-5 py-32 md:px-12 md:py-48">
+      <div class="mx-auto max-w-6xl">
+        <p class="mb-8 font-mono text-sm text-aqua">01 — sobre</p>
+        <p
+          class="statement max-w-5xl text-3xl leading-[1.15] font-medium tracking-tight md:text-6xl"
+        >
+          Sou estudante do Instituto Federal em Araquari, apaixonado por tecnologia, café e código
+          aberto. Aprendo construindo: saí do HTML puro, passei por Vue, Node e Django, e hoje
+          brinco com agentes de IA e deploy.
+        </p>
+        <div class="mt-20 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <motion.div
+            v-for="(s, i) in [
+              { v: repoCount, l: 'repositórios públicos' },
+              { v: langs.length, l: 'linguagens e ferramentas' },
+              { v: 4, l: 'projetos no ar' },
+              { v: null, l: 'cafés por commit' },
+            ]"
+            :key="s.l"
+            :initial="{ opacity: 0, y: 40 }"
+            :while-in-view="{ opacity: 1, y: 0 }"
+            :in-view-options="{ once: true, margin: '-10%' }"
+            :transition="{ delay: i * 0.1, duration: 0.9, ease: [0.16, 1, 0.3, 1] }"
+            class="glass rounded-3xl p-6"
+          >
+            <div class="text-grad text-5xl font-bold tracking-tighter md:text-6xl">
+              <span v-if="s.v !== null" :data-count="s.v">0</span><span v-else>∞</span>
+            </div>
+            <div class="mt-2 text-sm text-mute">{{ s.l }}</div>
+          </motion.div>
         </div>
       </div>
     </section>
 
-    <!-- Philosophy Section -->
-    <section class="philosophy">
-      <div class="philosophy-content">
-        <h2>Minha Abordagem</h2>
-        <p>
-          Acredito que uma visão estratégica e consciente do desenvolvimento vem de entender como
-          cada parte de um sistema se conecta. Por isso, busco compreender o ecossistema completo
-          antes de especializar definitivamente.
-        </p>
-        <p>
-          Com o tempo, meu foco tende a se consolidar cada vez mais no backend e trabalho com dados,
-          sem perder a visão geral das aplicações e mantendo a curiosidade que me move.
-        </p>
+    <!-- ================= STACK ================= -->
+    <section id="stack" class="px-5 py-32 md:px-12">
+      <div class="mx-auto grid min-h-[80svh] max-w-6xl items-center md:grid-cols-2">
+        <div>
+          <!-- no celular o anel de cubos fica em cima -->
+          <div class="h-[42svh] md:hidden" />
+          <p class="mb-4 font-mono text-sm text-aqua">02 — stack</p>
+          <h2 class="sec-title text-5xl font-bold tracking-tighter md:text-7xl">
+            Minhas linguagens
+          </h2>
+          <p class="mt-4 max-w-md text-white/60">
+            Cada cubo de gelo é uma linguagem que eu uso. Clica num deles (ou aqui embaixo) e vê um
+            pedaço de código meu sendo digitado.
+          </p>
+          <div class="pointer-events-auto mt-6 flex flex-wrap gap-2">
+            <motion.button
+              v-for="(l, i) in langs"
+              :key="l.key"
+              :while-hover="{ y: -3 }"
+              :while-press="{ scale: 0.94 }"
+              class="flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm transition-colors"
+              :class="
+                current === i
+                  ? 'border-transparent text-ink'
+                  : 'border-white/10 text-white/70 hover:text-white'
+              "
+              :style="current === i ? { background: l.color } : {}"
+              @click="world?.select(i)"
+            >
+              <img :src="`/icons/${l.key}.svg`" alt="" class="size-4" onerror="this.remove()" />{{
+                l.name
+              }}
+            </motion.button>
+          </div>
+          <div class="pointer-events-auto mt-8 select-text">
+            <LangTerminal :lang="langs[current]" />
+          </div>
+        </div>
       </div>
+    </section>
+
+    <!-- ================= PROJETOS ================= -->
+    <section
+      id="projetos"
+      class="overflow-hidden py-24 md:flex md:h-svh md:flex-col md:justify-center md:py-0"
+    >
+      <div class="mx-auto mb-10 w-full max-w-6xl px-5 md:px-12">
+        <p class="mb-4 font-mono text-sm text-aqua">03 — projetos</p>
+        <h2 class="sec-title text-5xl font-bold tracking-tighter md:text-7xl">Coisas que eu fiz</h2>
+      </div>
+      <div
+        ref="track"
+        class="flex flex-col gap-5 px-5 md:w-max md:flex-row md:pr-12 md:pl-[max(3rem,calc((100vw-72rem)/2+3rem))]"
+      >
+        <motion.article
+          v-for="(p, i) in projects"
+          :key="p.repo"
+          :initial="{ opacity: 0, y: 60 }"
+          :while-in-view="{ opacity: 1, y: 0 }"
+          :in-view-options="{ once: true }"
+          :while-hover="{ y: -12, rotate: -0.6 }"
+          :transition="{ type: 'spring', stiffness: 160, damping: 20 }"
+          class="glass pointer-events-auto group relative flex w-full shrink-0 flex-col overflow-hidden rounded-[2rem] md:h-[62svh] md:w-[min(34rem,70vw)]"
+        >
+          <div
+            class="relative flex h-48 items-center justify-center overflow-hidden md:h-auto md:flex-1"
+            :style="{
+              background: `radial-gradient(circle at 30% 20%, ${p.hue[0]}, transparent 60%), radial-gradient(circle at 80% 90%, ${p.hue[1]}, transparent 55%), #0b0c16`,
+            }"
+          >
+            <span class="absolute top-4 left-6 font-mono text-sm text-white/60">0{{ i + 1 }}</span>
+            <span
+              v-if="p.live"
+              class="absolute top-4 right-5 flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1 font-mono text-xs backdrop-blur"
+            >
+              <span class="size-1.5 animate-pulse rounded-full bg-aqua" /> no ar
+            </span>
+            <span
+              class="text-7xl transition-transform duration-700 ease-out group-hover:scale-125 group-hover:rotate-12 md:text-8xl"
+              >{{ p.icon }}</span
+            >
+          </div>
+          <div class="flex flex-col gap-3 p-6">
+            <h3 class="text-2xl font-bold tracking-tight">{{ p.name }}</h3>
+            <p class="text-sm text-white/60">{{ p.desc }}</p>
+            <div class="flex flex-wrap gap-2 font-mono text-xs">
+              <span
+                v-for="t in p.tags"
+                :key="t"
+                class="rounded-md bg-white/5 px-2 py-1 text-mute"
+                >{{ t }}</span
+              >
+            </div>
+            <div class="mt-2 flex gap-5 text-sm">
+              <a
+                v-if="p.live"
+                v-cursor="'abrir'"
+                :href="p.live"
+                target="_blank"
+                rel="noopener"
+                class="border-b border-aqua pb-0.5 hover:text-aqua"
+                >Ver ao vivo ↗</a
+              >
+              <a
+                v-cursor="'código'"
+                :href="`https://github.com/${GITHUB_USER}/${p.repo}`"
+                target="_blank"
+                rel="noopener"
+                class="border-b border-white/20 pb-0.5 hover:border-white"
+                >Código</a
+              >
+            </div>
+          </div>
+        </motion.article>
+        <a
+          v-cursor="'github'"
+          :href="`https://github.com/${GITHUB_USER}?tab=repositories`"
+          target="_blank"
+          rel="noopener"
+          class="pointer-events-auto flex shrink-0 items-center justify-center rounded-[2rem] border border-dashed border-white/15 p-10 text-center text-xl text-white/60 transition-colors hover:border-aqua hover:text-white md:h-[62svh] md:w-80"
+        >
+          + {{ repoCount - projects.length }} repositórios<br />no GitHub ↗
+        </a>
+      </div>
+    </section>
+
+    <!-- ================= CONTATO ================= -->
+    <section id="contato" class="flex min-h-svh flex-col justify-center px-5 py-32 md:px-12">
+      <div class="mx-auto w-full max-w-6xl text-center">
+        <p class="mb-6 font-mono text-sm text-aqua">04 — contato</p>
+        <h2
+          class="contact-big text-[13vw] leading-[0.9] font-bold tracking-[-0.05em] md:text-[8vw]"
+        >
+          Bora criar algo <span class="text-grad">juntos?</span>
+        </h2>
+        <p class="mx-auto mt-6 max-w-md text-white/60">
+          Aberto a estágios, colaborações, conversas sobre código e ideias malucas.
+        </p>
+        <div class="pointer-events-auto mt-10 flex flex-wrap justify-center gap-3">
+          <a
+            v-magnetic
+            v-cursor="'email'"
+            href="mailto:mateushenriquedasilva2411@gmail.com"
+            class="rounded-full bg-white px-7 py-4 font-medium text-ink transition-colors hover:bg-aqua"
+            >✉ mateushenriquedasilva2411@gmail.com</a
+          >
+          <a
+            v-magnetic
+            href="https://github.com/Mateus2411"
+            target="_blank"
+            rel="noopener"
+            class="glass rounded-full px-7 py-4 font-medium transition-colors hover:border-aqua"
+            >GitHub</a
+          >
+          <a
+            v-magnetic
+            href="https://instagram.com/mateus_.hs"
+            target="_blank"
+            rel="noopener"
+            class="glass rounded-full px-7 py-4 font-medium transition-colors hover:border-pink"
+            >Instagram</a
+          >
+        </div>
+      </div>
+      <footer
+        class="mx-auto mt-32 flex w-full max-w-6xl flex-wrap justify-between gap-4 border-t border-white/10 pt-6 font-mono text-xs text-mute"
+      >
+        <span>© 2026 Mateus Henrique da Silva</span>
+        <span>Vue · Three.js · GSAP · Motion · Tailwind</span>
+        <router-link to="/quiz" class="pointer-events-auto hover:text-aqua"
+          >joga meu quiz →</router-link
+        >
+      </footer>
     </section>
   </main>
 </template>
-
-<style scoped>
-.home {
-  width: 100%;
-  min-height: calc(100vh - 64px);
-}
-
-/* Hero Section */
-.hero {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 120px 24px 80px;
-  text-align: center;
-}
-
-.hero-content {
-  animation: fadeInUp 0.8s ease-out;
-}
-
-.hero-badge {
-  display: inline-block;
-  padding: 8px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 50px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin-bottom: 24px;
-  animation: float 3s ease-in-out infinite;
-}
-
-.hero-title {
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
-  font-weight: 800;
-  line-height: 1.2;
-  margin-bottom: 24px;
-  color: #1a202c;
-  letter-spacing: -0.02em;
-}
-
-.gradient-text {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hero-description {
-  font-size: clamp(1.1rem, 2vw, 1.3rem);
-  line-height: 1.7;
-  color: #4a5568;
-  max-width: 700px;
-  margin: 0 auto 40px;
-}
-
-.hero-cta {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.btn-primary,
-.btn-secondary {
-  padding: 14px 32px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 1rem;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  display: inline-block;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-}
-
-.btn-secondary {
-  background: white;
-  color: #667eea;
-  border: 2px solid #667eea;
-}
-
-.btn-secondary:hover {
-  background: #667eea;
-  color: white;
-  transform: translateY(-2px);
-}
-
-/* Focus Section */
-.focus-section {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 80px 24px;
-}
-
-.section-title {
-  font-size: clamp(2rem, 4vw, 2.5rem);
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 60px;
-  color: #1a202c;
-}
-
-.focus-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 32px;
-}
-
-.focus-card:last-child:nth-child(3n - 1) {
-  grid-column: span 2;
-}
-
-@media (max-width: 768px) {
-  .focus-card:last-child:nth-child(3n - 1) {
-    grid-column: span 1;
-  }
-}
-
-.focus-card {
-  background: white;
-  padding: 40px 32px;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  border: 1px solid #e2e8f0;
-}
-
-.focus-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
-  border-color: #667eea;
-}
-
-.card-icon {
-  font-size: 3rem;
-  margin-bottom: 20px;
-}
-
-.focus-card h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 16px;
-  color: #1a202c;
-}
-
-.focus-card p {
-  font-size: 1rem;
-  line-height: 1.7;
-  color: #4a5568;
-}
-
-/* Philosophy Section */
-.philosophy {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 80px 24px;
-  margin-top: 40px;
-}
-
-.philosophy-content {
-  max-width: 800px;
-  margin: 0 auto;
-  text-align: center;
-  color: white;
-}
-
-.philosophy-content h2 {
-  font-size: clamp(2rem, 4vw, 2.5rem);
-  font-weight: 700;
-  margin-bottom: 32px;
-}
-
-.philosophy-content p {
-  font-size: 1.1rem;
-  line-height: 1.8;
-  margin-bottom: 20px;
-  opacity: 0.95;
-}
-
-/* Animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .hero {
-    padding: 80px 20px 60px;
-  }
-
-  .hero-cta {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    width: 100%;
-    max-width: 300px;
-  }
-
-  .focus-grid {
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
-
-  .focus-section,
-  .philosophy {
-    padding: 60px 20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .hero {
-    padding: 60px 18px 40px;
-  }
-
-  .focus-card {
-    padding: 32px 24px;
-  }
-}
-</style>
