@@ -32,7 +32,13 @@ export class World {
       w3: 0,
       w4: 0,
       tint: 0,
+      scrim: 0,
     }
+    // no celular, a órbita do hero, o anel (stack) e o grupo do contato seguem um
+    // elemento da página: fração da altura da tela onde está o centro dele
+    // (null = usa o estado normal)
+    this.anchors = { 0: null, 2: null, 4: null }
+    this.prevAnchor = {}
 
     this.pointer = new THREE.Vector2(9, 9)
     this.mouse = new THREE.Vector2()
@@ -55,7 +61,11 @@ export class World {
       powerPreference: 'high-performance',
     }))
     r.setPixelRatio(Math.min(devicePixelRatio, this.mobile ? 1.5 : 2))
-    r.setSize(innerWidth, innerHeight)
+    this.size = {
+      w: this.canvas.clientWidth || innerWidth,
+      h: this.canvas.clientHeight || innerHeight,
+    }
+    r.setSize(this.size.w, this.size.h, false)
     r.toneMapping = THREE.ACESFilmicToneMapping
     r.toneMappingExposure = 1.05
 
@@ -70,7 +80,7 @@ export class World {
 
     this.camera = new THREE.PerspectiveCamera(
       this.mobile ? 55 : 40,
-      innerWidth / innerHeight,
+      this.size.w / this.size.h,
       0.1,
       100,
     )
@@ -184,7 +194,7 @@ export class World {
         p.raycast = () => {}
         g.add(p)
       }
-      const s = this.mobile ? 0.62 : 0.78
+      const s = this.mobile ? 0.66 : 0.78
       g.scale.setScalar(s)
       g.rotation.set(Math.random() * 6, Math.random() * 6, 0)
       g.position.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 14, -10)
@@ -245,10 +255,11 @@ export class World {
       const y = 1 - (i / (n - 1)) * 2
       const r = Math.sqrt(1 - y * y)
       const th = golden * i + t * 0.15
-      const R = m ? 2.4 : 3.3
+      // no celular: elipse estreita só na metade de cima, longe do texto
+      const [rx, ry, rz] = m ? [1.9, 1.45, 1.6] : [4.1, 2.8, 3.3]
       out.push(
-        new THREE.Vector3(Math.cos(th) * r * R * 1.25, y * R * 0.85, Math.sin(th) * r * R).add(
-          new THREE.Vector3(this.state.crX, this.state.crY, this.state.crZ),
+        new THREE.Vector3(Math.cos(th) * r * rx, y * ry, Math.sin(th) * r * rz).add(
+          new THREE.Vector3(this.state.crX, this.#anchorY(0, this.state.crY), this.state.crZ),
         ),
       )
     }
@@ -258,17 +269,17 @@ export class World {
       const side = i % 2 ? 1 : -1
       out.push(
         new THREE.Vector3(
-          side * ((m ? 2.5 : 6.5) + (i % 3) * 1.4) + Math.sin(t * 0.3 + i) * 0.4,
+          side * ((m ? 2.2 : 6.5) + (i % 3) * (m ? 0.8 : 1.4)) + Math.sin(t * 0.3 + i) * 0.4,
           h * (m ? 6 : 4) + Math.cos(t * 0.25 + i) * 0.4,
-          -6 - (i % 4) * 1.8,
+          (m ? -9 : -6) - (i % 4) * 1.8,
         ),
       )
     }
     // 2 · stack: anel girando ao lado do terminal
     {
-      const R = m ? 2.1 : 2.7
+      const R = m ? 1.95 : 2.7
       const th = a + t * 0.25
-      const c = m ? new THREE.Vector3(0, 2.2, 0) : new THREE.Vector3(3.4, 0, 0)
+      const c = m ? new THREE.Vector3(0, this.#anchorY(2, 2.4), 0) : new THREE.Vector3(3.4, 0, 0)
       out.push(new THREE.Vector3(Math.cos(th) * R, Math.sin(th) * R, Math.sin(th * 2) * 0.4).add(c))
     }
     // 3 · projetos: hélice lá no fundo
@@ -282,10 +293,10 @@ export class World {
       const y = 1 - (i / (n - 1)) * 2
       const r = Math.sqrt(1 - y * y)
       const th = golden * i - t * 0.3
-      const R = m ? 1.9 : 2.3
+      const R = m ? 1.7 : 2.3
       out.push(
         new THREE.Vector3(Math.cos(th) * r * R, y * R, Math.sin(th) * r * R).add(
-          new THREE.Vector3(this.state.crX, this.state.crY, this.state.crZ),
+          new THREE.Vector3(this.state.crX, this.#anchorY(4, this.state.crY), this.state.crZ),
         ),
       )
     }
@@ -300,13 +311,13 @@ export class World {
   #bind() {
     this.handlers = {
       move: (e) => {
-        this.pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1)
+        this.#setPointer(e)
         if (this.drag) this.#dragTo()
       },
       down: (e) => {
         // só pega cubos quando o clique acontece no canvas (e não num botão/link)
         if (e.target !== this.canvas && !e.target.closest?.('[data-pass]')) return
-        this.pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1)
+        this.#setPointer(e)
         const hit = this.#pick()
         if (!hit) return
         if (hit.object === this.crystalCore) return this.#burst()
@@ -354,6 +365,10 @@ export class World {
     document.addEventListener('visibilitychange', this.handlers.vis)
   }
 
+  #setPointer(e) {
+    this.pointer.set((e.clientX / this.size.w) * 2 - 1, -(e.clientY / this.size.h) * 2 + 1)
+  }
+
   #pick() {
     if (!this.hitTargets) return null
     this.raycaster.setFromCamera(this.pointer, this.camera)
@@ -397,11 +412,26 @@ export class World {
   }
 
   resize() {
+    const w = this.canvas.clientWidth
+    const h = this.canvas.clientHeight
+    if (w === this.size.w && h === this.size.h) return
+    this.size = { w, h }
     this.mobile = innerWidth < 768
-    this.camera.aspect = innerWidth / innerHeight
+    this.camera.aspect = w / h
     this.camera.fov = this.mobile ? 55 : 40
     this.camera.updateProjectionMatrix()
-    this.renderer.setSize(innerWidth, innerHeight)
+    this.renderer.setSize(w, h, false)
+  }
+
+  // y do mundo (no plano z=0) que aparece na fração `fy` da altura da tela
+  #worldY(fy) {
+    const vis = 2 * this.state.camZ * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2))
+    return this.state.camY + (0.5 - fy * (innerHeight / this.size.h)) * vis
+  }
+
+  #anchorY(k, fallback) {
+    const a = this.anchors[k]
+    return this.mobile && a != null ? this.#worldY(a) : fallback
   }
 
   // ---------- loop ----------
@@ -409,7 +439,9 @@ export class World {
     const dt = Math.min(this.clock.getDelta(), 1 / 30)
     const t = this.clock.elapsedTime
     const s = this.state
-    this.mouse.lerp(this.pointer.x > 5 ? new THREE.Vector2() : this.pointer, 0.06)
+    // no celular o "ponteiro" é o dedo rolando a página: sem parallax
+    const follow = this.pointer.x > 5 || this.mobile ? new THREE.Vector2() : this.pointer
+    this.mouse.lerp(follow, 0.06)
 
     // câmera com parallax do mouse
     this.camera.position.x += (s.camX + this.mouse.x * 0.6 - this.camera.position.x) * 0.08
@@ -419,7 +451,9 @@ export class World {
 
     // cristal
     this.pulse = Math.max(0, (this.pulse || 0) - dt * 1.5)
-    this.crystal.position.set(s.crX, s.crY + Math.sin(t * 0.8) * 0.12, s.crZ)
+    let cy = s.crY
+    for (const k of [0, 2, 4]) cy += s[`w${k}`] * (this.#anchorY(k, s.crY) - s.crY)
+    this.crystal.position.set(s.crX, cy + Math.sin(t * 0.8) * 0.12, s.crZ)
     this.crystal.scale.setScalar(s.crS * (1 + this.pulse * 0.25))
     this.crystal.rotation.y += dt * (0.25 + this.pulse * 6)
     this.crystal.rotation.x = Math.sin(t * 0.3) * 0.3 + this.mouse.y * 0.4
@@ -458,6 +492,14 @@ export class World {
     // física dos cubos
     const n = this.orbs.length
     const w = [s.w0, s.w1, s.w2, s.w3, s.w4]
+    // quanto as âncoras andaram desde o último frame: os cubos andam junto, rígidos,
+    // como se fossem parte da página (a mola cuida só do balanço)
+    let shift = 0
+    for (const k of [0, 2, 4]) {
+      const y = this.#anchorY(k, null)
+      if (y != null && this.prevAnchor[k] != null) shift += (y - this.prevAnchor[k]) * w[k]
+      this.prevAnchor[k] = y
+    }
     this.orbs.forEach((o, i) => {
       const L = this.#layouts(i, n, t)
       o.home.set(0, 0, 0)
@@ -474,8 +516,11 @@ export class World {
             .divideScalar(dt || 1 / 60)
         }
       } else {
-        o.vel.addScaledVector(o.home.clone().sub(o.g.position), 7 * dt)
-        o.vel.multiplyScalar(Math.exp(-2.6 * dt))
+        o.g.position.y += shift
+        // celular: mola mais firme para os cubos não ficarem para trás do texto
+        const [k, c] = this.mobile ? [18, 5.8] : [7, 2.6]
+        o.vel.addScaledVector(o.home.clone().sub(o.g.position), k * dt)
+        o.vel.multiplyScalar(Math.exp(-c * dt))
         o.g.position.addScaledVector(o.vel, dt)
       }
 
