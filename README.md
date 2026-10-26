@@ -23,3 +23,21 @@ npm run dev
 Build de produção: `npm run build`. Para deploy na Vercel o `vercel.json` já redireciona as rotas pro `index.html`.
 
 Dados de linguagens e projetos ficam em `src/data.js`.
+
+## Deploy no Fabroku (IFC)
+
+O Fabroku usa Dokku: ele faz o build pelo `Dockerfile` e só roteia a **porta 5000**.
+
+- `Dockerfile`: etapa 1 roda `npm ci` + `npm run build` no Node 22; etapa 2 serve o `dist` com nginx na porta 5000 (imagem final ~77 MB)
+- `nginx.conf`: fallback de SPA (`/quiz` funciona), gzip, cache de 1 ano nos arquivos com hash e `GET /health` para o healthcheck
+- Nenhuma variável de ambiente é necessária
+
+Passos: crie o app no Fabroku apontando para este repo (branch `master`) e faça o deploy. O site fica em `*.class.fabricadesoftware.ifc.edu.br`.
+
+Testar local igual ao Fabroku:
+
+```sh
+docker build -t portfolio .
+docker run -p 5000:5000 portfolio
+# http://localhost:5000
+```
