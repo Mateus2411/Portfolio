@@ -1,44 +1,25 @@
-# Portfólio
+# 🧊 Portfólio · Mateus Henrique
 
-This template should help get you started developing with Vue 3 in Vite.
+Portfólio 3D interativo: um cristal no centro e um cubo de gelo para cada linguagem que eu uso. Dá para **arrastar e arremessar** os cubos, clicar no cristal para explodir tudo e ver código sendo digitado em cada linguagem.
 
-## Recommended IDE Setup
+**Stack:** Vue 3 · Three.js · GSAP (ScrollTrigger + SplitText) · Motion for Vue · Tailwind CSS v4 · Lenis
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## O que tem
 
-## Recommended Browser Setup
+- Cena 3D em `src/three/World.js`: cristal de vidro iridescente, cubos de gelo com física simples (mola, colisão, arremesso) e neve caindo
+- O scroll (Lenis + ScrollTrigger com scrub) move a câmera, o cristal e reorganiza os cubos em cada seção
+- Preloader com contador, títulos com SplitText, texto que acende palavra por palavra
+- Terminal que digita um snippet da linguagem escolhida (clique no cubo ou no botão)
+- Galeria horizontal fixa de projetos no desktop, cursor customizado e botões magnéticos
+- Funciona no celular (layout próprio, toque nos cubos)
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+## Rodando
 
 ```sh
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
 
-### Compile and Minify for Production
+Build de produção: `npm run build`. Para deploy na Vercel o `vercel.json` já redireciona as rotas pro `index.html`.
 
-```sh
-npm run build
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+Dados de linguagens e projetos ficam em `src/data.js`.
