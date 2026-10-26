@@ -11,6 +11,10 @@ import LangTerminal from '@/components/LangTerminal.vue'
 const canvas = ref(null)
 const root = ref(null)
 const track = ref(null)
+const scrim = ref(null)
+const heroAnchor = ref(null)
+const ringAnchor = ref(null)
+const contactAnchor = ref(null)
 const world = shallowRef(null)
 const progress = ref(0)
 const loaded = ref(false)
@@ -22,37 +26,22 @@ let ctx,
   cursorFromWorld = false
 
 // posição do cristal/câmera/cubos em cada seção [desktop, celular]
+// scrim = quanto a cena 3D é escurecida atrás do conteúdo (texto sempre legível)
+const W = (k) => ({ w0: 0, w1: 0, w2: 0, w3: 0, w4: 0, [`w${k}`]: 1 })
 const T = {
   hero: [
-    {
-      camX: 0,
-      camY: 0,
-      camZ: 10,
-      crX: 2.6,
-      crY: 0.1,
-      crZ: 0,
-      crS: 1,
-      w0: 1,
-      w1: 0,
-      w2: 0,
-      w3: 0,
-      w4: 0,
-      tint: 0,
-    },
+    { camX: 0, camY: 0, camZ: 10, crX: 2.6, crY: 0.1, crZ: 0, crS: 1, ...W(0), tint: 0, scrim: 0 },
     {
       camX: 0,
       camY: 0,
       camZ: 11,
       crX: 0,
-      crY: 2.1,
-      crZ: -1,
-      crS: 0.7,
-      w0: 1,
-      w1: 0,
-      w2: 0,
-      w3: 0,
-      w4: 0,
+      crY: 2.75,
+      crZ: 0,
+      crS: 0.75,
+      ...W(0),
       tint: 0,
+      scrim: 0,
     },
   ],
   sobre: [
@@ -64,27 +53,21 @@ const T = {
       crY: -0.5,
       crZ: -3,
       crS: 0.8,
-      w0: 0,
-      w1: 1,
-      w2: 0,
-      w3: 0,
-      w4: 0,
+      ...W(1),
       tint: 0.3,
+      scrim: 0.3,
     },
     {
       camX: 0,
       camY: 0,
       camZ: 12,
       crX: 0,
-      crY: -2.5,
-      crZ: -5,
-      crS: 0.7,
-      w0: 0,
-      w1: 1,
-      w2: 0,
-      w3: 0,
-      w4: 0,
+      crY: -1,
+      crZ: -7,
+      crS: 0.9,
+      ...W(1),
       tint: 0.3,
+      scrim: 0.72,
     },
   ],
   stack: [
@@ -96,27 +79,21 @@ const T = {
       crY: 0,
       crZ: -3,
       crS: 0.55,
-      w0: 0,
-      w1: 0,
-      w2: 1,
-      w3: 0,
-      w4: 0,
+      ...W(2),
       tint: 0.55,
+      scrim: 0,
     },
     {
       camX: 0,
       camY: 0,
-      camZ: 12,
+      camZ: 11,
       crX: 0,
-      crY: 2.2,
-      crZ: -3,
-      crS: 0.5,
-      w0: 0,
-      w1: 0,
-      w2: 1,
-      w3: 0,
-      w4: 0,
+      crY: 2.4,
+      crZ: 0,
+      crS: 0.42,
+      ...W(2),
       tint: 0.55,
+      scrim: 0.1,
     },
   ],
   projetos: [
@@ -128,12 +105,9 @@ const T = {
       crY: 0,
       crZ: -9,
       crS: 1.6,
-      w0: 0,
-      w1: 0,
-      w2: 0,
-      w3: 1,
-      w4: 0,
+      ...W(3),
       tint: 0.8,
+      scrim: 0.2,
     },
     {
       camX: 0,
@@ -143,12 +117,9 @@ const T = {
       crY: 0,
       crZ: -9,
       crS: 1.4,
-      w0: 0,
-      w1: 0,
-      w2: 0,
-      w3: 1,
-      w4: 0,
+      ...W(3),
       tint: 0.8,
+      scrim: 0.6,
     },
   ],
   contato: [
@@ -158,30 +129,13 @@ const T = {
       camZ: 10,
       crX: 0,
       crY: 0,
-      crZ: -1,
+      crZ: -3.5,
       crS: 0.8,
-      w0: 0,
-      w1: 0,
-      w2: 0,
-      w3: 0,
-      w4: 1,
+      ...W(4),
       tint: 1,
+      scrim: 0.2,
     },
-    {
-      camX: 0,
-      camY: 0,
-      camZ: 12,
-      crX: 0,
-      crY: 0.6,
-      crZ: -1,
-      crS: 0.7,
-      w0: 0,
-      w1: 0,
-      w2: 0,
-      w3: 0,
-      w4: 1,
-      tint: 1,
-    },
+    { camX: 0, camY: 0, camZ: 11, crX: 0, crY: 2.4, crZ: 0, crS: 0.6, ...W(4), tint: 1, scrim: 0 },
   ],
 }
 
@@ -213,11 +167,30 @@ onMounted(() => {
     .then((u) => u?.public_repos && (repoCount.value = u.public_repos))
     .catch(() => {})
 
+  gsap.ticker.add(syncScene)
+
   // as linguagens trocam sozinhas, a não ser que alguém escolha uma
   cycle = setInterval(() => {
     if (performance.now() > pausedUntil) world.value?.select((current.value + 1) % langs.length)
   }, 6000)
 })
+
+// a cada frame: aplica o scrim e, no celular, passa para a cena 3D onde estão
+// os espaços reservados ao anel de cubos e ao grupo do contato (eles "grudam" na página)
+const mobileMQ = matchMedia('(max-width: 767px)')
+const centerOf = (el) => {
+  const r = el.getBoundingClientRect()
+  return (r.top + r.height / 2) / innerHeight
+}
+function syncScene() {
+  const w = world.value
+  if (!w) return
+  if (scrim.value) scrim.value.style.opacity = w.state.scrim
+  const m = mobileMQ.matches && heroAnchor.value && ringAnchor.value && contactAnchor.value
+  w.anchors[0] = m ? centerOf(heroAnchor.value) : null
+  w.anchors[2] = m ? centerOf(ringAnchor.value) : null
+  w.anchors[4] = m ? centerOf(contactAnchor.value) : null
+}
 
 // SplitText quebra o background-clip do gradiente: cada pedaço dentro de
 // .text-grad recebe o próprio gradiente (palavras inteiras, não letra a letra)
@@ -338,6 +311,7 @@ async function start() {
 }
 
 onBeforeUnmount(() => {
+  gsap.ticker.remove(syncScene)
   clearInterval(cycle)
   ctx?.revert()
   world.value?.dispose()
@@ -348,7 +322,13 @@ const marquee = [...langs, ...langs]
 </script>
 
 <template>
-  <canvas ref="canvas" class="fixed inset-0 z-0 h-svh w-full touch-pan-y" aria-hidden="true" />
+  <canvas
+    ref="canvas"
+    class="fixed inset-x-0 top-0 z-0 h-lvh w-full touch-pan-y"
+    aria-hidden="true"
+  />
+  <!-- escurece a cena atrás do conteúdo, mais forte nas seções com muito texto -->
+  <div ref="scrim" class="pointer-events-none fixed inset-0 z-[5] bg-ink opacity-0" />
   <PreLoader v-if="!loaded" :progress="progress" @done="start" />
   <NavBar />
 
@@ -356,35 +336,43 @@ const marquee = [...langs, ...langs]
     <!-- ================= HERO ================= -->
     <section
       id="hero"
-      class="relative flex min-h-svh flex-col justify-end px-5 pb-28 md:justify-center md:px-12 md:pb-0"
+      class="relative flex min-h-svh flex-col px-5 pb-24 md:justify-center md:px-12 md:pb-0"
     >
-      <div class="mx-auto w-full max-w-6xl">
+      <!-- celular: o cristal e a órbita de cubos vivem neste espaço, acima do texto -->
+      <div ref="heroAnchor" class="mt-18 min-h-[30svh] flex-1 md:hidden" />
+      <!-- celular: degradê atrás do texto -->
+      <div
+        class="absolute inset-x-0 bottom-0 h-[58svh] bg-gradient-to-t from-ink from-40% via-ink/80 to-transparent md:hidden"
+      />
+      <div class="relative mx-auto w-full max-w-6xl">
         <p
-          class="hero-in mb-6 inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 font-mono text-xs text-mute"
+          class="hero-in mb-6 hidden items-center gap-2 rounded-full glass px-4 py-1.5 font-mono text-xs text-mute md:inline-flex"
         >
           <span class="size-2 animate-pulse rounded-full bg-aqua shadow-[0_0_12px] shadow-aqua" />
           Araquari, SC · estudante de T.I. no IFC
         </p>
-        <h1 class="text-[17vw] leading-[0.85] font-bold tracking-[-0.06em] md:text-[11vw]">
+        <h1 class="text-[16vw] leading-[0.85] font-bold tracking-[-0.06em] md:text-[11vw]">
           <span class="hero-name block">Mateus</span>
           <span class="hero-name block pb-[0.08em]"><span class="text-grad">Henrique</span></span>
         </h1>
-        <p class="hero-in mt-6 max-w-md text-lg text-white/70 md:text-xl">
-          Dev em formação que transforma café em <b class="text-white">Vue, Node, Python e Java</b>.
-          Construindo coisas todo dia.
+        <p class="hero-in mt-5 max-w-md text-base text-white/70 md:mt-6 md:max-w-lg md:text-xl">
+          Dev em formação no IFC Araquari, transformando café em
+          <b class="text-white">Vue, Node, Python e Java</b>.
         </p>
-        <div class="hero-in pointer-events-auto mt-8 flex flex-wrap gap-3">
+        <div
+          class="hero-in pointer-events-auto mt-7 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap md:mt-8"
+        >
           <button
             v-magnetic
             v-cursor="'bora'"
-            class="rounded-full bg-white px-6 py-3 font-medium text-ink transition-colors hover:bg-aqua"
+            class="rounded-full bg-white px-6 py-3.5 font-medium text-ink transition-colors hover:bg-aqua"
             @click="scrollTo('#projetos')"
           >
             Ver projetos ↓
           </button>
           <button
             v-magnetic
-            class="glass rounded-full px-6 py-3 font-medium transition-colors hover:border-aqua"
+            class="glass rounded-full px-6 py-3.5 font-medium transition-colors hover:border-aqua"
             @click="scrollTo('#contato')"
           >
             Falar comigo
@@ -393,10 +381,13 @@ const marquee = [...langs, ...langs]
         <p class="hero-in mt-8 hidden font-mono text-xs text-mute md:block">
           🧊 arraste e arremesse os cubos · 💎 clique no cristal
         </p>
+        <p class="hero-in mt-5 font-mono text-[11px] text-mute md:hidden">
+          🧊 toque nos cubos · 💎 toque no cristal
+        </p>
       </div>
 
       <div
-        class="marquee absolute inset-x-0 bottom-6 overflow-hidden border-y border-white/5 py-3 opacity-70"
+        class="marquee absolute inset-x-0 bottom-6 overflow-hidden border-y border-white/5 bg-ink/40 py-3 opacity-70 [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]"
       >
         <div
           class="flex w-max animate-marquee gap-10 font-mono text-sm whitespace-nowrap text-mute"
@@ -444,11 +435,11 @@ const marquee = [...langs, ...langs]
     </section>
 
     <!-- ================= STACK ================= -->
-    <section id="stack" class="px-5 py-32 md:px-12">
+    <section id="stack" class="px-5 pt-8 pb-32 md:px-12 md:py-32">
       <div class="mx-auto grid min-h-[80svh] max-w-6xl items-center md:grid-cols-2">
         <div>
-          <!-- no celular o anel de cubos fica em cima -->
-          <div class="h-[42svh] md:hidden" />
+          <!-- no celular o anel de cubos vive neste espaço e rola junto com a página -->
+          <div ref="ringAnchor" class="h-[50svh] md:hidden" />
           <p class="mb-4 font-mono text-sm text-aqua">02 — stack</p>
           <h2 class="sec-title text-5xl font-bold tracking-tighter md:text-7xl">
             Minhas linguagens
@@ -463,11 +454,11 @@ const marquee = [...langs, ...langs]
               :key="l.key"
               :while-hover="{ y: -3 }"
               :while-press="{ scale: 0.94 }"
-              class="flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm transition-colors"
+              class="flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition-colors md:py-1.5"
               :class="
                 current === i
                   ? 'border-transparent text-ink'
-                  : 'border-white/10 text-white/70 hover:text-white'
+                  : 'border-white/10 bg-panel text-white/70 hover:text-white'
               "
               :style="current === i ? { background: l.color } : {}"
               @click="world?.select(i)"
@@ -562,7 +553,7 @@ const marquee = [...langs, ...langs]
           :href="`https://github.com/${GITHUB_USER}?tab=repositories`"
           target="_blank"
           rel="noopener"
-          class="pointer-events-auto flex shrink-0 items-center justify-center rounded-[2rem] border border-dashed border-white/15 p-10 text-center text-xl text-white/60 transition-colors hover:border-aqua hover:text-white md:h-[62svh] md:w-80"
+          class="pointer-events-auto flex shrink-0 items-center justify-center rounded-[2rem] border border-dashed border-white/15 bg-panel/90 p-10 text-center text-xl text-white/60 transition-colors hover:border-aqua hover:text-white md:h-[62svh] md:w-80"
         >
           + {{ repoCount - projects.length }} repositórios<br />no GitHub ↗
         </a>
@@ -570,7 +561,12 @@ const marquee = [...langs, ...langs]
     </section>
 
     <!-- ================= CONTATO ================= -->
-    <section id="contato" class="flex min-h-svh flex-col justify-center px-5 py-32 md:px-12">
+    <section
+      id="contato"
+      class="pb-safe flex min-h-svh flex-col justify-center px-5 pt-16 md:px-12 md:py-32"
+    >
+      <!-- celular: o cristal e os cubos se juntam neste espaço -->
+      <div ref="contactAnchor" class="h-[42svh] md:hidden" />
       <div class="mx-auto w-full max-w-6xl text-center">
         <p class="mb-6 font-mono text-sm text-aqua">04 — contato</p>
         <h2
@@ -581,20 +577,27 @@ const marquee = [...langs, ...langs]
         <p class="mx-auto mt-6 max-w-md text-white/60">
           Aberto a estágios, colaborações, conversas sobre código e ideias malucas.
         </p>
-        <div class="pointer-events-auto mt-10 flex flex-wrap justify-center gap-3">
+        <div
+          class="pointer-events-auto mx-auto mt-10 grid max-w-md grid-cols-2 gap-3 md:flex md:max-w-none md:justify-center"
+        >
           <a
             v-magnetic
             v-cursor="'email'"
             href="mailto:mateushenriquedasilva2411@gmail.com"
-            class="rounded-full bg-white px-7 py-4 font-medium text-ink transition-colors hover:bg-aqua"
-            >✉ mateushenriquedasilva2411@gmail.com</a
+            class="col-span-2 flex flex-col items-center rounded-3xl bg-white px-7 py-4 font-medium text-ink transition-colors hover:bg-aqua md:rounded-full"
           >
+            <span class="md:hidden">✉ Mandar um email</span>
+            <span class="text-xs font-normal text-ink/55 md:hidden"
+              >mateushenriquedasilva2411@gmail.com</span
+            >
+            <span class="hidden md:inline">✉ mateushenriquedasilva2411@gmail.com</span>
+          </a>
           <a
             v-magnetic
             href="https://github.com/Mateus2411"
             target="_blank"
             rel="noopener"
-            class="glass rounded-full px-7 py-4 font-medium transition-colors hover:border-aqua"
+            class="glass rounded-3xl px-7 py-4 text-center font-medium transition-colors hover:border-aqua md:rounded-full"
             >GitHub</a
           >
           <a
@@ -602,13 +605,13 @@ const marquee = [...langs, ...langs]
             href="https://instagram.com/mateus_.hs"
             target="_blank"
             rel="noopener"
-            class="glass rounded-full px-7 py-4 font-medium transition-colors hover:border-pink"
+            class="glass rounded-3xl px-7 py-4 text-center font-medium transition-colors hover:border-pink md:rounded-full"
             >Instagram</a
           >
         </div>
       </div>
       <footer
-        class="mx-auto mt-32 flex w-full max-w-6xl flex-wrap justify-between gap-4 border-t border-white/10 pt-6 font-mono text-xs text-mute"
+        class="mx-auto mt-20 flex w-full max-w-6xl flex-col items-center gap-3 border-t border-white/10 pt-6 font-mono text-xs text-mute md:mt-32 md:flex-row md:justify-between"
       >
         <span>© 2026 Mateus Henrique da Silva</span>
         <span>Vue · Three.js · GSAP · Motion · Tailwind</span>
