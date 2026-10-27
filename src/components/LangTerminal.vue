@@ -57,7 +57,7 @@ const visible = computed(() => {
 </script>
 
 <template>
-  <div class="glass overflow-hidden rounded-2xl shadow-2xl shadow-violet/10">
+  <div class="glass overflow-hidden rounded-2xl">
     <div class="flex items-center gap-2 border-b border-white/10 px-4 py-3">
       <i class="size-3 rounded-full bg-[#ff5f57]" /><i class="size-3 rounded-full bg-[#febc2e]" /><i
         class="size-3 rounded-full bg-[#28c840]"
@@ -72,7 +72,7 @@ const visible = computed(() => {
         >
           <span
             class="size-2 rounded-full"
-            :style="{ background: lang.color, boxShadow: `0 0 12px ${lang.color}` }"
+            :style="{ background: lang.color }"
           />
           {{ lang.file }}
         </motion.span>
