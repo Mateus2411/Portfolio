@@ -26,7 +26,9 @@ Dados de linguagens e projetos ficam em `src/data.js`.
 
 ## Deploy no Fabroku (IFC)
 
-O projeto já tem os arquivos que o Fabroku pede para SPA (`.buildpacks`, `.static` e `static.json`): o buildpack do Node roda o `npm run build` e o nginx serve o `dist`.
+O projeto já tem os arquivos que o Fabroku pede para SPA (`.buildpacks`, `.static` e `static.json`): o buildpack do Node roda o `npm run build` e o `dokku/buildpack-nginx` serve o site.
+
+O `app-nginx.conf.sigil` é o que faz o nginx servir a pasta `dist` (com fallback para o `index.html`, gzip e cache dos assets). Sem ele, o buildpack serve a raiz do repositório e o site quebra com `Failed to resolve module specifier "vue"`, porque esse buildpack ignora o `static.json`.
 
 ```sh
 npm i -g fabroku
