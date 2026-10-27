@@ -34,9 +34,7 @@ const ease = [0.16, 1, 0.3, 1]
     <nav
       class="glass relative z-10 mx-auto flex h-14 max-w-6xl items-center justify-between rounded-2xl px-5"
     >
-      <button v-magnetic class="font-mono text-sm font-semibold" @click="go(0)">
-        &lt;<span class="text-grad">mateus</span>/&gt;
-      </button>
+      <button class="font-mono text-sm font-semibold" @click="go(0)">mateus</button>
       <ul class="hidden items-center gap-1 text-sm text-mute sm:flex">
         <li v-for="[label, href] in links" :key="href">
           <a
@@ -48,7 +46,6 @@ const ease = [0.16, 1, 0.3, 1]
         </li>
         <li>
           <a
-            v-magnetic
             href="https://github.com/Mateus2411"
             target="_blank"
             rel="noopener"
@@ -81,7 +78,7 @@ const ease = [0.16, 1, 0.3, 1]
 
       <motion.div
         :style="{ scaleX: progress }"
-        class="absolute inset-x-5 bottom-0 h-px origin-left bg-gradient-to-r from-violet via-aqua to-pink"
+        class="absolute inset-x-5 bottom-0 h-px origin-left bg-white/30"
       />
     </nav>
 
@@ -95,9 +92,6 @@ const ease = [0.16, 1, 0.3, 1]
         :transition="{ duration: 0.7, ease }"
         class="fixed inset-0 flex flex-col justify-between bg-ink px-6 pt-28 pb-safe sm:hidden"
       >
-        <div
-          class="pointer-events-none absolute inset-0 bg-[radial-gradient(80%_50%_at_100%_0%,rgb(124_92_255/0.25),transparent),radial-gradient(70%_40%_at_0%_100%,rgb(0_229_195/0.15),transparent)]"
-        />
         <ul class="relative flex flex-col gap-2">
           <motion.li
             v-for="([label, href], i) in links"
@@ -108,12 +102,10 @@ const ease = [0.16, 1, 0.3, 1]
           >
             <a
               :href="href"
-              class="flex items-baseline gap-4 border-b border-white/10 py-3 text-5xl font-bold tracking-tighter active:text-aqua"
+              class="block border-b border-white/10 py-3 text-5xl font-bold tracking-tighter active:text-aqua"
               @click.prevent="go(href)"
+              >{{ label }}</a
             >
-              <span class="font-mono text-sm font-normal text-aqua">0{{ i + 1 }}</span
-              >{{ label }}
-            </a>
           </motion.li>
         </ul>
         <motion.div

@@ -42,7 +42,7 @@ onMounted(() => gsap.from('.pl-bar', { scaleX: 0, duration: 1.4, ease: 'expo.out
   >
     <div class="flex justify-between font-mono text-xs text-mute">
       <span>mateus/portfolio</span>
-      <span>carregando os cubos de gelo 🧊</span>
+      <span>carregando</span>
     </div>
     <div class="flex items-end justify-between">
       <div class="line-mask">
@@ -50,7 +50,7 @@ onMounted(() => gsap.from('.pl-bar', { scaleX: 0, duration: 1.4, ease: 'expo.out
           {{ shown }}
         </div>
       </div>
-      <div class="pl-bar mb-4 h-px w-1/3 origin-left bg-gradient-to-r from-violet to-aqua" />
+      <div class="pl-bar mb-4 h-px w-1/3 origin-left bg-white/40" />
     </div>
   </div>
 </template>

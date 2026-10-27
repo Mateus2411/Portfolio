@@ -2,7 +2,7 @@
 import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { motion } from 'motion-v'
 import { World } from '@/three/World'
-import { gsap, ScrollTrigger, SplitText, cursor, scrollTo, lenis } from '@/lib/motion'
+import { gsap, ScrollTrigger, SplitText, scrollTo, lenis } from '@/lib/motion'
 import { langs, projects, GITHUB_USER } from '@/data'
 import PreLoader from '@/components/PreLoader.vue'
 import NavBar from '@/components/NavBar.vue'
@@ -22,8 +22,7 @@ const current = ref(0)
 const repoCount = ref(26)
 let ctx,
   cycle,
-  pausedUntil = 0,
-  cursorFromWorld = false
+  pausedUntil = 0
 
 // posição do cristal/câmera/cubos em cada seção [desktop, celular]
 // scrim = quanto a cena 3D é escurecida atrás do conteúdo (texto sempre legível)
@@ -149,15 +148,8 @@ onMounted(() => {
   world.value = new World(canvas.value, langs, {
     onProgress: (p) => (progress.value = p),
     onSelect: (i) => pick(i, true),
-    onHover: (h) => {
-      if (h) {
-        Object.assign(cursor, { label: h === 'crystal' ? 'clique 💥' : 'arraste', big: true })
-        cursorFromWorld = true
-      } else if (cursorFromWorld) {
-        Object.assign(cursor, { label: '', big: false })
-        cursorFromWorld = false
-      }
-    },
+    // cursor nativo: mãozinha no cristal, "agarrar" nos cubos
+    onHover: (h) => (document.body.style.cursor = !h ? '' : h === 'crystal' ? 'pointer' : 'grab'),
   })
   // sem textura de rede, nada trava o preloader; ainda assim garante o fim
   world.value.ready.then(() => (progress.value = 1))
@@ -192,34 +184,21 @@ function syncScene() {
   w.anchors[4] = m ? centerOf(contactAnchor.value) : null
 }
 
-// SplitText quebra o background-clip do gradiente: cada pedaço dentro de
-// .text-grad recebe o próprio gradiente (palavras inteiras, não letra a letra)
-function split(target, opts) {
-  const s = SplitText.create(target, opts)
-  s.words.forEach((w) => {
-    if (!w.parentElement.closest('.text-grad')) return
-    w.classList.add('text-grad')
-    w.querySelectorAll('*').forEach((c) => c.classList.add('text-grad'))
-  })
-  return s
-}
-
 async function start() {
   loaded.value = true
   await nextTick()
   lenis.start()
   ctx = gsap.context(() => {
     // ---------- entrada do hero ----------
-    const name = split('.hero-name', { type: 'words,chars', mask: 'chars' })
+    const name = SplitText.create('.hero-name', { type: 'words,chars', mask: 'chars' })
     gsap
       .timeline({ defaults: { ease: 'expo.out' } })
       .from(name.chars, { yPercent: 120, rotate: 8, duration: 1.4, stagger: 0.05 })
       .from('.hero-in', { y: 30, opacity: 0, duration: 1.2, stagger: 0.1 }, 0.3)
-      .from('.marquee', { opacity: 0, duration: 1.5 }, 0.8)
 
     // ---------- títulos das seções ----------
     gsap.utils.toArray('.sec-title').forEach((el) => {
-      const s = split(el, { type: 'words,chars', mask: 'chars' })
+      const s = SplitText.create(el, { type: 'words,chars', mask: 'chars' })
       gsap.from(s.chars, {
         yPercent: 110,
         duration: 1.1,
@@ -296,7 +275,7 @@ async function start() {
     })
 
     // ---------- contato ----------
-    const big = split('.contact-big', { type: 'words', mask: 'words' })
+    const big = SplitText.create('.contact-big', { type: 'words', mask: 'words' })
     gsap.from(big.words, {
       yPercent: 120,
       rotate: 6,
@@ -315,10 +294,8 @@ onBeforeUnmount(() => {
   clearInterval(cycle)
   ctx?.revert()
   world.value?.dispose()
-  Object.assign(cursor, { label: '', big: false })
+  document.body.style.cursor = ''
 })
-
-const marquee = [...langs, ...langs]
 </script>
 
 <template>
@@ -345,33 +322,27 @@ const marquee = [...langs, ...langs]
         class="absolute inset-x-0 bottom-0 h-[58svh] bg-gradient-to-t from-ink from-40% via-ink/80 to-transparent md:hidden"
       />
       <div class="relative mx-auto w-full max-w-6xl">
-        <p
-          class="hero-in mb-6 hidden items-center gap-2 rounded-full glass px-4 py-1.5 font-mono text-xs text-mute md:inline-flex"
-        >
-          <span class="size-2 animate-pulse rounded-full bg-aqua shadow-[0_0_12px] shadow-aqua" />
+        <p class="hero-in mb-6 hidden font-mono text-xs text-mute md:block">
           Araquari, SC · estudante de T.I. no IFC
         </p>
         <h1 class="text-[16vw] leading-[0.85] font-bold tracking-[-0.06em] md:text-[11vw]">
           <span class="hero-name block">Mateus</span>
-          <span class="hero-name block pb-[0.08em]"><span class="text-grad">Henrique</span></span>
+          <span class="hero-name block pb-[0.08em] text-white/45">Henrique</span>
         </h1>
         <p class="hero-in mt-5 max-w-md text-base text-white/70 md:mt-6 md:max-w-lg md:text-xl">
-          Dev em formação no IFC Araquari, transformando café em
+          Dev em formação no IFC Araquari. Programo em
           <b class="text-white">Vue, Node, Python e Java</b>.
         </p>
         <div
           class="hero-in pointer-events-auto mt-7 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap md:mt-8"
         >
           <button
-            v-magnetic
-            v-cursor="'bora'"
             class="rounded-full bg-white px-6 py-3.5 font-medium text-ink transition-colors hover:bg-aqua"
             @click="scrollTo('#projetos')"
           >
             Ver projetos ↓
           </button>
           <button
-            v-magnetic
             class="glass rounded-full px-6 py-3.5 font-medium transition-colors hover:border-aqua"
             @click="scrollTo('#contato')"
           >
@@ -379,54 +350,39 @@ const marquee = [...langs, ...langs]
           </button>
         </div>
         <p class="hero-in mt-8 hidden font-mono text-xs text-mute md:block">
-          🧊 arraste e arremesse os cubos · 💎 clique no cristal
+          arraste os cubos · clique no cristal
         </p>
         <p class="hero-in mt-5 font-mono text-[11px] text-mute md:hidden">
-          🧊 toque nos cubos · 💎 toque no cristal
+          toque nos cubos ou no cristal
         </p>
-      </div>
-
-      <div
-        class="marquee absolute inset-x-0 bottom-6 overflow-hidden border-y border-white/5 bg-ink/40 py-3 opacity-70 [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]"
-      >
-        <div
-          class="flex w-max animate-marquee gap-10 font-mono text-sm whitespace-nowrap text-mute"
-        >
-          <span v-for="(l, i) in marquee" :key="i" class="flex items-center gap-3">
-            <span class="size-1.5 rounded-full" :style="{ background: l.color }" />{{ l.name }}
-          </span>
-        </div>
       </div>
     </section>
 
     <!-- ================= SOBRE ================= -->
     <section id="sobre" class="px-5 py-32 md:px-12 md:py-48">
       <div class="mx-auto max-w-6xl">
-        <p class="mb-8 font-mono text-sm text-aqua">01 — sobre</p>
+        <p class="mb-8 font-mono text-sm text-mute">sobre</p>
         <p
           class="statement max-w-5xl text-3xl leading-[1.15] font-medium tracking-tight md:text-6xl"
         >
-          Sou estudante do Instituto Federal em Araquari, apaixonado por tecnologia, café e código
-          aberto. Aprendo construindo: saí do HTML puro, passei por Vue, Node e Django, e hoje
-          brinco com agentes de IA e deploy.
+          Estudo T.I. no Instituto Federal em Araquari. Aprendo construindo: comecei no HTML puro,
+          passei por Vue, Node e Django, e hoje mexo com agentes de IA e deploy.
         </p>
-        <div class="mt-20 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div class="mt-20 grid grid-cols-3 gap-6 border-t border-white/10 pt-8 md:max-w-3xl">
           <motion.div
             v-for="(s, i) in [
               { v: repoCount, l: 'repositórios públicos' },
               { v: langs.length, l: 'linguagens e ferramentas' },
               { v: 4, l: 'projetos no ar' },
-              { v: null, l: 'cafés por commit' },
             ]"
             :key="s.l"
             :initial="{ opacity: 0, y: 40 }"
             :while-in-view="{ opacity: 1, y: 0 }"
             :in-view-options="{ once: true, margin: '-10%' }"
             :transition="{ delay: i * 0.1, duration: 0.9, ease: [0.16, 1, 0.3, 1] }"
-            class="glass rounded-3xl p-6"
           >
-            <div class="text-grad text-5xl font-bold tracking-tighter md:text-6xl">
-              <span v-if="s.v !== null" :data-count="s.v">0</span><span v-else>∞</span>
+            <div class="text-4xl font-bold tracking-tighter md:text-5xl">
+              <span :data-count="s.v">0</span>
             </div>
             <div class="mt-2 text-sm text-mute">{{ s.l }}</div>
           </motion.div>
@@ -440,7 +396,7 @@ const marquee = [...langs, ...langs]
         <div>
           <!-- no celular o anel de cubos vive neste espaço e rola junto com a página -->
           <div ref="ringAnchor" class="h-[50svh] md:hidden" />
-          <p class="mb-4 font-mono text-sm text-aqua">02 — stack</p>
+          <p class="mb-4 font-mono text-sm text-mute">stack</p>
           <h2 class="sec-title text-5xl font-bold tracking-tighter md:text-7xl">
             Minhas linguagens
           </h2>
@@ -481,7 +437,7 @@ const marquee = [...langs, ...langs]
       class="overflow-hidden py-24 md:flex md:h-svh md:flex-col md:justify-center md:py-0"
     >
       <div class="mx-auto mb-10 w-full max-w-6xl px-5 md:px-12">
-        <p class="mb-4 font-mono text-sm text-aqua">03 — projetos</p>
+        <p class="mb-4 font-mono text-sm text-mute">projetos</p>
         <h2 class="sec-title text-5xl font-bold tracking-tighter md:text-7xl">Coisas que eu fiz</h2>
       </div>
       <div
@@ -494,7 +450,7 @@ const marquee = [...langs, ...langs]
           :initial="{ opacity: 0, y: 60 }"
           :while-in-view="{ opacity: 1, y: 0 }"
           :in-view-options="{ once: true }"
-          :while-hover="{ y: -12, rotate: -0.6 }"
+          :while-hover="{ y: -6 }"
           :transition="{ type: 'spring', stiffness: 160, damping: 20 }"
           class="glass pointer-events-auto group relative flex w-full shrink-0 flex-col overflow-hidden rounded-[2rem] md:h-[62svh] md:w-[min(34rem,70vw)]"
         >
@@ -512,7 +468,7 @@ const marquee = [...langs, ...langs]
               <span class="size-1.5 animate-pulse rounded-full bg-aqua" /> no ar
             </span>
             <span
-              class="text-7xl transition-transform duration-700 ease-out group-hover:scale-125 group-hover:rotate-12 md:text-8xl"
+              class="text-7xl transition-transform duration-500 ease-out group-hover:scale-110 md:text-8xl"
               >{{ p.icon }}</span
             >
           </div>
@@ -530,7 +486,6 @@ const marquee = [...langs, ...langs]
             <div class="mt-2 flex gap-5 text-sm">
               <a
                 v-if="p.live"
-                v-cursor="'abrir'"
                 :href="p.live"
                 target="_blank"
                 rel="noopener"
@@ -538,7 +493,6 @@ const marquee = [...langs, ...langs]
                 >Ver ao vivo ↗</a
               >
               <a
-                v-cursor="'código'"
                 :href="`https://github.com/${GITHUB_USER}/${p.repo}`"
                 target="_blank"
                 rel="noopener"
@@ -549,7 +503,6 @@ const marquee = [...langs, ...langs]
           </div>
         </motion.article>
         <a
-          v-cursor="'github'"
           :href="`https://github.com/${GITHUB_USER}?tab=repositories`"
           target="_blank"
           rel="noopener"
@@ -568,11 +521,11 @@ const marquee = [...langs, ...langs]
       <!-- celular: o cristal e os cubos se juntam neste espaço -->
       <div ref="contactAnchor" class="h-[42svh] md:hidden" />
       <div class="mx-auto w-full max-w-6xl text-center">
-        <p class="mb-6 font-mono text-sm text-aqua">04 — contato</p>
+        <p class="mb-6 font-mono text-sm text-mute">contato</p>
         <h2
           class="contact-big text-[13vw] leading-[0.9] font-bold tracking-[-0.05em] md:text-[8vw]"
         >
-          Bora criar algo <span class="text-grad">juntos?</span>
+          Bora criar algo <span class="text-aqua">juntos?</span>
         </h2>
         <p class="mx-auto mt-6 max-w-md text-white/60">
           Aberto a estágios, colaborações, conversas sobre código e ideias malucas.
@@ -581,19 +534,16 @@ const marquee = [...langs, ...langs]
           class="pointer-events-auto mx-auto mt-10 grid max-w-md grid-cols-2 gap-3 md:flex md:max-w-none md:justify-center"
         >
           <a
-            v-magnetic
-            v-cursor="'email'"
             href="mailto:mateushenriquedasilva2411@gmail.com"
             class="col-span-2 flex flex-col items-center rounded-3xl bg-white px-7 py-4 font-medium text-ink transition-colors hover:bg-aqua md:rounded-full"
           >
-            <span class="md:hidden">✉ Mandar um email</span>
+            <span class="md:hidden">Mandar um email</span>
             <span class="text-xs font-normal text-ink/55 md:hidden"
               >mateushenriquedasilva2411@gmail.com</span
             >
-            <span class="hidden md:inline">✉ mateushenriquedasilva2411@gmail.com</span>
+            <span class="hidden md:inline">mateushenriquedasilva2411@gmail.com</span>
           </a>
           <a
-            v-magnetic
             href="https://github.com/Mateus2411"
             target="_blank"
             rel="noopener"
@@ -601,7 +551,6 @@ const marquee = [...langs, ...langs]
             >GitHub</a
           >
           <a
-            v-magnetic
             href="https://instagram.com/mateus_.hs"
             target="_blank"
             rel="noopener"

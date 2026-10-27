@@ -10,14 +10,8 @@
   --color-violet: #7c5cff;
   --color-aqua: #00e5c3;
   --color-pink: #ff4d8d;
-  --animate-marquee: marquee 28s linear infinite;
   --animate-blink: blink 1s steps(2) infinite;
 
-  @keyframes marquee {
-    to {
-      transform: translateX(-50%);
-    }
-  }
   @keyframes blink {
     50% {
       opacity: 0;
@@ -47,18 +41,6 @@
     background: var(--color-aqua);
     color: var(--color-ink);
   }
-}
-
-@utility text-grad {
-  background: linear-gradient(
-    110deg,
-    var(--color-violet),
-    var(--color-aqua) 60%,
-    var(--color-pink)
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 
 /* Superfícies: vidro fosco no desktop; no celular (e sem backdrop-filter, ou com
@@ -104,13 +86,6 @@
   padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
 }
 
-/* cursor nativo some só onde temos o customizado (desktop) */
-@media (pointer: fine) {
-  .has-cursor,
-  .has-cursor * {
-    cursor: none !important;
-  }
-}
 body.grabbing,
 body.grabbing * {
   cursor: grabbing !important;
