@@ -1,0 +1,75 @@
+{{/*
+  Config do nginx usada pelo dokku/buildpack-nginx no Fabroku.
+  Sem este arquivo o buildpack serve a RAIZ do repositório (o index.html do
+  código-fonte, que importa "vue" direto e quebra no navegador). Aqui ele
+  serve o build do Vite em dist/, com fallback de SPA para o index.html.
+  O static.json é ignorado por este buildpack.
+*/}}
+{{ if ne $.NGINX_WORKERS "" }}
+  worker_processes {{ $.NGINX_WORKERS }};
+{{ else }}
+  worker_processes 1;
+{{ end }}
+error_log stderr;
+pid nginx.pid;
+daemon off;
+
+events {
+  {{ if ne $.NGINX_WORKER_CONNECTIONS "" }}
+    worker_connections {{ $.NGINX_WORKER_CONNECTIONS }};
+  {{ else }}
+    worker_connections 768;
+  {{ end }}
+}
+
+http {
+  client_body_timeout 5;
+  types_hash_max_size 2048;
+  include mime.types;
+  charset UTF-8;
+  server_tokens off;
+
+  gzip on;
+  gzip_comp_level 6;
+  gzip_min_length 1024;
+  gzip_vary on;
+  gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+
+  server {
+    listen {{ $.PORT }};
+    server_name _;
+    client_max_body_size 1M;
+    {{ if ne $.NGINX_ROOT "" }}
+      root /app/www/{{ $.NGINX_ROOT }};
+    {{ else }}
+      root /app/www/dist;
+    {{ end }}
+    index index.html;
+    port_in_redirect off;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+    # arquivos do Vite têm hash no nome: cache de 1 ano
+    location /assets/ {
+      expires 1y;
+      add_header Cache-Control "public, immutable";
+      add_header X-Content-Type-Options nosniff always;
+      try_files $uri =404;
+    }
+
+    location = /health {
+      access_log off;
+      default_type text/plain;
+      return 200 "ok\n";
+    }
+
+    # SPA: rotas como /quiz caem no index.html
+    location / {
+      add_header Cache-Control "no-cache";
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy strict-origin-when-cross-origin always;
+      try_files $uri $uri/ /index.html;
+    }
+  }
+}
