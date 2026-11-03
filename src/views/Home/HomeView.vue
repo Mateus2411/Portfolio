@@ -373,7 +373,7 @@ onBeforeUnmount(() => {
             v-for="(s, i) in [
               { v: repoCount, l: 'repositórios públicos' },
               { v: langs.length, l: 'linguagens e ferramentas' },
-              { v: 4, l: 'projetos no ar' },
+              { v: projects.filter((p) => p.live).length, l: 'projetos no ar' },
             ]"
             :key="s.l"
             :initial="{ opacity: 0, y: 40 }"
@@ -460,6 +460,14 @@ onBeforeUnmount(() => {
               background: `radial-gradient(circle at 30% 20%, ${p.hue[0]}, transparent 60%), radial-gradient(circle at 80% 90%, ${p.hue[1]}, transparent 55%), #0b0c16`,
             }"
           >
+            <!-- imagem do projeto: OG gerado pelo GitHub (repo + README); se falhar, sobra o gradiente + emoji -->
+            <img
+              :src="`https://opengraph.githubassets.com/1/${GITHUB_USER}/${p.repo}`"
+              :alt="p.name"
+              loading="lazy"
+              class="absolute inset-0 size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+              onerror="this.remove()"
+            />
             <span class="absolute top-4 left-6 font-mono text-sm text-white/60">0{{ i + 1 }}</span>
             <span
               v-if="p.live"
