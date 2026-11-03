@@ -460,9 +460,9 @@ onBeforeUnmount(() => {
               background: `radial-gradient(circle at 30% 20%, ${p.hue[0]}, transparent 60%), radial-gradient(circle at 80% 90%, ${p.hue[1]}, transparent 55%), #0b0c16`,
             }"
           >
-            <!-- imagem do projeto: OG gerado pelo GitHub (repo + README); se falhar, sobra o gradiente + emoji -->
+            <!-- imprimir capa: se o projeto tem capa própria usa ela; senão, OG do GitHub; se falhar, sobra o gradiente + emoji -->
             <img
-              :src="`https://opengraph.githubassets.com/1/${GITHUB_USER}/${p.repo}`"
+              :src="p.img || `https://opengraph.githubassets.com/1/${GITHUB_USER}/${p.repo}`"
               :alt="p.name"
               loading="lazy"
               class="absolute inset-0 size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
