@@ -181,22 +181,4 @@ export const projects = [
     hue: ['#4285f4', '#00e5c3'],
     icon: '🌐',
   },
-  {
-    name: 'DevWeb II',
-    desc: 'Trabalhos e experimentos da disciplina de Desenvolvimento Web II, todos em Vue.',
-    tags: ['Vue', 'Vercel'],
-    repo: 'DevWeb-II',
-    live: 'https://dev-web-2.vercel.app',
-    hue: ['#41b883', '#35495e'],
-    icon: '🧪',
-  },
-  {
-    name: 'Site de Camisetas (API)',
-    desc: 'Backend em Node.js de uma loja de camisetas, hospedado no Render.',
-    tags: ['Node.js', 'API', 'Render'],
-    repo: 'Back-Site-Camisetas',
-    live: 'https://back-site-camisetas.onrender.com',
-    hue: ['#f05032', '#f7df1e'],
-    icon: '👕',
-  },
 ]
